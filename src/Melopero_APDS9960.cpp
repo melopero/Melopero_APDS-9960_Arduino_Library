@@ -188,3 +188,225 @@ int8_t Melopero_APDS9960::disablePhotodiodes(bool mask_up, bool mask_down, bool 
 int8_t Melopero_APDS9960::updateProximityData(){
     return read(PROX_DATA_REG_ADDRESS, &proximityData, 1);
 }
+
+// =========================================================================
+//     ALS Engine Methods
+// =========================================================================
+
+int8_t Melopero_APDS9960::enableAlsEngine(bool enable = true){
+    return andOrRegister(ENABLE_REG_ADDRESS, (enable << 1) | 0xFD, enable << 1);
+}
+
+int8_t Melopero_APDS9960::enableAlsInterrupts(bool enable = true){
+    return andOrRegister(ENABLE_REG_ADDRESS, (enable << 4) | 0xEF, enable << 4);
+}
+
+int8_t Melopero_APDS9960::enableAlsSaturationInterrupts(bool enable = true){
+    return andOrRegister(CONFIG_2_REG_ADDRESS, (enable << 6) | 0xBF, enable << 6);
+}
+
+// Interrupts are cleared by “address accessing” the appropriate register. This is special I2C transaction
+// consisting of only two bytes: chip address with R/W = 0, followed by a register address.
+int8_t Melopero_APDS9960::clearAlsInterrupts(){
+    return addressAccess(ALS_INT_CLEAR_REG_ADDRESS);
+}
+
+int8_t Melopero_APDS9960::setAlsGain(uint8_t als_gain){
+    if (!(ALS_GAIN_1X <= als_gain && als_gain <= ALS_GAIN_64X))
+        return INVALID_ARGUMENT;
+    
+    return andOrRegister(CONTROL_1_REG_ADDRESS, (als_gain) | 0xFC, als_gain);
+}
+
+int8_t Melopero_APDS9960::setAlsThresholds(uint16_t low_thr, uint16_t high_thr){
+    uint8_t buffer[4];
+    buffer[0] = low_thr & 0xFF;
+    buffer[1] = low_thr >> 8;
+    buffer[2] = high_thr & 0xFF;
+    buffer[3] = high_thr >> 8;
+    return write(ALS_INT_LOW_THR_LOW_BYTE_REG_ADDRESS, buffer, 4);
+}
+
+int8_t Melopero_APDS9960::setAlsInterruptPersistence(uint8_t persistence){
+    if (persistence > 15)
+        return INVALID_ARGUMENT;
+    
+    return andOrRegister(INTERRUPT_PERSISTANCE_REG_ADDRESS, persistence | 0xF0, persistence);
+}
+
+int8_t Melopero_APDS9960::setAlsIntegrationTime(float wtime){
+    if (!(2.78f <= wtime && wtime <= 712f))
+        return INVALID_ARGUMENT;
+
+    uint8_t value = 256 - (int)( wtime / 2.78f);
+    return write(ALS_ATIME_REG_ADDRESS, &value, 1);
+}
+
+int8_t Melopero_APDS9960::updateSaturation(){ 
+        uint8_t reg_value = 0;
+        int8_t status = read(ALS_ATIME_REG_ADDRESS, &reg_value, 1);
+        if (status != NO_ERROR) return status;
+
+        uint8_t cycles = (256 - reg_value) * 1025;
+        alsSaturation = cycles < 65535 ? cycles : 65535;
+        return NO_ERROR;
+}
+
+int8_t Melopero_APDS9960::updateColorData(){
+    uint8_t color_buffer[8] = {0};
+    int8_t status = read(CLEAR_DATA_LOW_BYTE_REG_ADDRESS, &color_buffer, 8);
+    if (status != NO_ERROR) return status;
+
+    clear = ((uint16_t) color_buffer[1]) << 8 | (uint16_t) color_buffer[0];
+    red = ((uint16_t) color_buffer[3]) << 8 | (uint16_t) color_buffer[2];
+    green = ((uint16_t) color_buffer[5]) << 8 | (uint16_t) color_buffer[4];
+    blue = ((uint16_t) color_buffer[7]) << 8 | (uint16_t) color_buffer[6];
+    return NO_ERROR;
+}
+
+// =========================================================================
+//     Gestures Engine Methods
+// =========================================================================
+
+int8_t Melopero_APDS9960::enableGesturesEngine(bool enable){
+    int8_t status = enableProximityEngine();
+    if (status != NO_ERROR) return status;
+    return andOrRegister(ENABLE_REG_ADDRESS, (enable << 6) 0xBF, enable << 6);
+}
+
+int8_t Melopero_APDS9960::enterImmediatelyGestureEngine(){
+    return andOrRegister(GESTURE_CONFIG_4_REG_ADDRESS, 0xFF, 1);
+}
+
+int8_t Melopero_APDS9960::exitGestureEngine(){
+    return andOrRegister(GESTURE_CONFIG_4_REG_ADDRESS, 0xFE, 0);
+}
+
+int8_t Melopero_APDS9960::setGestureProxEnterThreshold(uint8_t enter_thr){
+   return write(GESTURE_PROX_ENTER_THR_REG_ADDRESS, &enter_thr, 1);
+}
+
+int8_t Melopero_APDS9960::setGestureExitThreshold(uint8_t exit_thr){
+    return write(GESTURE_EXIT_THR_REG_ADDRESS, &exit_thr, 1);
+}
+
+int8_t Melopero_APDS9960::setGestureExitMask(bool mask_up, bool mask_down, bool mask_left, bool mask_right){
+    uint8_t flag = (mask_up << 5) | (mask_down << 4) | (mask_left << 3) | (mask_right << 2);
+    return andOrRegister(GESTURE_CONFIG_1_REG_ADDRESS, flag | 0xC3, flag);
+}
+
+int8_t Melopero_APDS9960::setGestureExitPersistence(uint8_t persistence){
+    if (!(EXIT_AFTER_1_GESTURE_END <= persistence && persistence <= EXIT_AFTER_7_GESTURE_END))
+        return INVALID_ARGUMENT;
+    
+    return andOrRegister(GESTURE_CONFIG_1_REG_ADDRESS, (persistence) | 0xFC, persistence);
+}
+
+int8_t Melopero_APDS9960::setGestureGain(uint8_t gesture_gain){
+    if (!(PROXIMITY_GAIN_1X <= gesture_gain && gesture_gain <= PROXIMITY_GAIN_8X))
+        return INVALID_ARGUMENT;
+
+    return andOrRegister(GESTURE_CONFIG_2_REG_ADDRESS, (gesture_gain << 5) | 0x9F, gesture_gain << 5);
+}
+
+int8_t Melopero_APDS9960::setGestureLedDrive(uint8_t led_drive){
+    if (!(LED_DRIVE_100_mA <= led_drive && led_drive <= LED_DRIVE_12_5_mA))
+        return INVALID_ARGUMENT;
+    
+    return andOrRegister(GESTURE_CONFIG_2_REG_ADDRESS, (led_drive << 3) | 0x7E, led_drive << 3);
+}
+
+int8_t Melopero_APDS9960::setGestureWaitTime(uint8_t wait_time){
+    if (!(GESTURE_WAIT_0_MILLIS <= wait_time && wait_time <= GESTURE_WAIT_39_2_MILLIS))
+        return INVALID_ARGUMENT;
+
+    return andOrRegister(GESTURE_CONFIG_2_REG_ADDRESS, wait_time | 0xF8, wait_time);
+}
+
+int8_t Melopero_APDS9960::setGestureOffsets(int8_t up_offset, int8_t down_offset, int8_t left_offset, int8_t right_offset){
+    uint8_t offsets[4] = {0};
+    offset[0] = up_offset < 0 ? 0x80 | ((uint8_t) -up_offset) : up_offset;
+    offset[1] = down_offset < 0 ? 0x80 | ((uint8_t) -down_offset) : down_offset;
+    offset[2] = left_offset < 0 ? 0x80 | ((uint8_t) -left_offset) : left_offset;
+    offset[3] = right_offset < 0 ? 0x80 | ((uint8_t) -right_offset) : right_offset;
+
+    return write(GESTURE_OFFSET_UP_REG_ADDRESSES, offsets, 4);
+}
+
+int8_t Melopero_APDS9960::setGesturePulseCountAndLength(uint8_t pulse_count, uint8_t pulse_length){
+    if (!(1 <= pulse_count && pulse_count <= 64))
+        return INVALID_ARGUMENT;
+    if (!(PULSE_LEN_4_MICROS <= pulse_length && pulse_length <= PULSE_LEN_32_MICROS))
+        return INVALID_ARGUMENT;
+
+    uint8_t reg_value = (pulse_count - 1) | (pulse_length << 6);
+    return write(GESTURE_PULSE_COUNT_AND_LEN_REG_ADDRESS, &reg_value, 1);
+}
+
+int8_t Melopero_APDS9960::setActivePhotodiodesPairs(bool up_down_active, bool right_left_active){
+    uint8_t flag = (right_left_active << 1 | (uint8_t) up_down_active);
+    return andOrRegister(GESTURE_CONFIG_3_REG_ADDRESS, flag | 0xFC, flag);
+}
+
+int8_t Melopero_APDS9960::enableGestureInterrupts(bool enable_interrupts = true){
+    return andOrRegister(GESTURE_CONFIG_4_REG_ADDRESS, (enable_interrupts << 1) | 0xFD, enable_interrupts << 1);
+}
+
+int8_t Melopero_APDS9960::setGestureFifoThreshold(uint8_t fifo_thr){
+    if (!(FIFO_INT_AFTER_1_DATASET <= fifo_thr && fifo_thr <= FIFO_INT_AFTER_16_DATASETS))
+        return INVALID_ARGUMENT;
+
+    return andOrRegister(GESTURE_CONFIG_1_REG_ADDRESS, (fifo_thr << 6) | 0x3F, fifo_thr << 6);
+}
+
+int8_t Melopero_APDS9960::clearGestureEngineInterrupts(){
+    uint8_t flag = (1 << 2);
+    return andOrRegister(GESTURE_CONFIG_4_REG_ADDRESS, flag | 0xFB, flag);
+}
+
+int8_t Melopero_APDS9960::checkGestureEngineRunning(){
+    uint8_t reg_value = 0;
+    int8_t status = read(GESTURE_CONFIG_4_REG_ADDRESS, &reg_value, 1);
+    if (status != NO_ERROR) return status;
+
+    gestureEngineRunning = (bool) reg_value & 0x01;
+    return NO_ERROR;
+}
+
+int8_t Melopero_APDS9960::updateNumberOfDatasetsInFifo(){
+    return read(GESTURE_FIFO_LEVEL_REG_ADDRESS, &datasetsInFifo, 1);    
+}
+
+int8_t Melopero_APDS9960::updateGestureStatus(){
+    uint8_t reg_value = 0;
+    int8_t status = read(GESTURE_STATUS_REG_ADDRESS, &reg_value, 1);
+    if (status != NO_ERROR) return status;
+
+    gestureFifoOverflow = (bool) (reg_value & 0x02);
+    gestureFifoHasData = (bool) (reg_value & 0x01);
+    return NO_ERROR;
+}
+
+int8_t Melopero_APDS9960::updateGestureData(){
+    return read(GESTURE_FIFO_UP_REG_ADDRESS, gestureData, 4);       
+}
+
+// =========================================================================
+//     Wait Engine Methods
+// =========================================================================
+
+int8_t Melopero_APDS9960::enableWaitEngine(bool enable){
+    return andOrRegister(ENABLE_REG_ADDRESS, (enable << 3) | 0xF7, enable << 3);
+}
+
+int8_t Melopero_APDS9960::setWaitTime(float wtime, bool long_wait){
+    if (!(2.78f <= wtime && wtime <= 712f))
+        return INVALID_ARGUMENT;
+
+    // long_wait
+    int8_t status = andOrRegister(CONFIG_1_REG_ADDRESS, (long_wait << 1) | 0xFD, long_wait << 1);
+    if (status != NO_ERROR) return status;
+    // wtime
+    uint8_t reg_value = 256 - ((int) (wtime / 2.78f));
+    return write(WAIT_TIME_REG_ADDRESS, &reg_value, 1);
+}
