@@ -10,6 +10,11 @@ Melopero_APDS9960::Melopero_APDS9960(uint8_t i2cAddr){
 //    I2C functions
 //=========================================================================
 
+int8_t Melopero_APDS9960::init(){
+    Wire.begin();
+    return NO_ERROR;
+}
+
 int8_t Melopero_APDS9960::read(uint8_t registerAddress, uint8_t* buffer, uint8_t amount){
     Wire.beginTransmission(i2cAddress);
     Wire.write(registerAddress);
@@ -69,14 +74,30 @@ int8_t Melopero_APDS9960::addressAccess(uint8_t registerAddress){
 //     Device Methods
 // =========================================================================
 
-int8_t wakeUp(bool wakeUp){
+int8_t Melopero_APDS9960::wakeUp(bool wakeUp){
     int8_t status = NO_ERROR;
     status = andOrRegister(ENABLE_REG_ADDRESS, ((uint8_t) wakeUp) | 0xFE, (uint8_t) wakeUp);
     delay(10);
     return status;
 }
 
-int8_t Melopero_APDS9960::reset();
+int8_t Melopero_APDS9960::reset(){
+    int8_t status = NO_ERROR;
+    status = setSleepAfterInterrupt(false);
+    if (status != NO_ERROR) return status;
+    status = enableAllEnginesAndPowerUp(false);
+    if (status != NO_ERROR) return status;
+    status = enableProximityInterrupts(false);
+    if (status != NO_ERROR) return status;
+    status = enableProximitySaturationInterrupts(false);
+    if (status != NO_ERROR) return status;
+    status = enableAlsInterrupts(false);
+    if (status != NO_ERROR) return status;
+    status = enableAlsSaturationInterrupts(false);
+    if (status != NO_ERROR) return status;
+    status = enableGestureInterrupts(false);
+    return status;
+}
 
 int8_t Melopero_APDS9960::enableAllEnginesAndPowerUp(bool enable){
     uint8_t value = enable ? 0b01001111 : 0;
@@ -92,10 +113,10 @@ int8_t Melopero_APDS9960::setSleepAfterInterrupt(bool enable){
 }
 
 int8_t Melopero_APDS9960::setLedDrive(uint8_t ledDrive){
-    if (!(LED_DRIVE_100_mA <= ledDrive && ledDrive <= APDS_9960.LED_DRIVE_12_5_mA))
+    if (!(LED_DRIVE_100_mA <= ledDrive && ledDrive <= LED_DRIVE_12_5_mA))
         return INVALID_ARGUMENT;
 
-    return andOrRegister(CONTROL_1_REG_ADDRESS, (ledDrive << 6) | 0x3F, ledDrive << 6));
+    return andOrRegister(CONTROL_1_REG_ADDRESS, (ledDrive << 6) | 0x3F, ledDrive << 6);
 }
 
 int8_t Melopero_APDS9960::setLedBoost(uint8_t ledBoost){
@@ -116,7 +137,7 @@ int8_t Melopero_APDS9960::updateStatus(){
 //     Proximity Engine Methods
 // =========================================================================
 
-int8_t Melopero_APDS960::enableProximityEngine(bool enable){
+int8_t Melopero_APDS9960::enableProximityEngine(bool enable){
     return andOrRegister(ENABLE_REG_ADDRESS, (enable << 2) | 0xFB, enable << 2);
 }
 
@@ -135,7 +156,7 @@ int8_t Melopero_APDS9960::clearProximityInterrupts(){
 }
 
 int8_t Melopero_APDS9960::setProximityGain(uint8_t proxGain){
-    if (!(PROXIMITY_GAIN_1X <= proxGain && proxGain <= PROXIMITY_GAIN_8X)
+    if (!(PROXIMITY_GAIN_1X <= proxGain && proxGain <= PROXIMITY_GAIN_8X))
         return INVALID_ARGUMENT;
 
     return andOrRegister(CONTROL_1_REG_ADDRESS, (proxGain << 2) | 0xF3, proxGain << 2);
@@ -157,13 +178,13 @@ int8_t Melopero_APDS9960::setProximityInterruptPersistence(uint8_t persistence){
 }
 
 int8_t Melopero_APDS9960::setProximityPulseCountAndLength(uint8_t pulseCount, uint8_t pulseLength){
-    if (!(1 <= pulseCount <= 64))
+    if (!(1 <= pulseCount && pulseCount <= 64))
         return INVALID_ARGUMENT;
-    if (!(PULSE_LEN_4_MICROS <= pulseLength <= PULSE_LEN_32_MICROS))
+    if (!(PULSE_LEN_4_MICROS <= pulseLength && pulseLength <= PULSE_LEN_32_MICROS))
         return INVALID_ARGUMENT;       
 
     uint8_t regValue = pulseLength << 6;
-    regValue |= pulseCount - 1
+    regValue |= pulseCount - 1;
     return write(PROX_PULSE_COUNT_REG_ADDRESS, &regValue, 1);
 }
 
@@ -193,15 +214,15 @@ int8_t Melopero_APDS9960::updateProximityData(){
 //     ALS Engine Methods
 // =========================================================================
 
-int8_t Melopero_APDS9960::enableAlsEngine(bool enable = true){
+int8_t Melopero_APDS9960::enableAlsEngine(bool enable){
     return andOrRegister(ENABLE_REG_ADDRESS, (enable << 1) | 0xFD, enable << 1);
 }
 
-int8_t Melopero_APDS9960::enableAlsInterrupts(bool enable = true){
+int8_t Melopero_APDS9960::enableAlsInterrupts(bool enable){
     return andOrRegister(ENABLE_REG_ADDRESS, (enable << 4) | 0xEF, enable << 4);
 }
 
-int8_t Melopero_APDS9960::enableAlsSaturationInterrupts(bool enable = true){
+int8_t Melopero_APDS9960::enableAlsSaturationInterrupts(bool enable){
     return andOrRegister(CONFIG_2_REG_ADDRESS, (enable << 6) | 0xBF, enable << 6);
 }
 
@@ -235,7 +256,7 @@ int8_t Melopero_APDS9960::setAlsInterruptPersistence(uint8_t persistence){
 }
 
 int8_t Melopero_APDS9960::setAlsIntegrationTime(float wtime){
-    if (!(2.78f <= wtime && wtime <= 712f))
+    if (!(2.78f <= wtime && wtime <= 712.0f))
         return INVALID_ARGUMENT;
 
     uint8_t value = 256 - (int)( wtime / 2.78f);
@@ -247,14 +268,14 @@ int8_t Melopero_APDS9960::updateSaturation(){
         int8_t status = read(ALS_ATIME_REG_ADDRESS, &reg_value, 1);
         if (status != NO_ERROR) return status;
 
-        uint8_t cycles = (256 - reg_value) * 1025;
+        uint16_t cycles = (256 - reg_value) * 1025;
         alsSaturation = cycles < 65535 ? cycles : 65535;
         return NO_ERROR;
 }
 
 int8_t Melopero_APDS9960::updateColorData(){
     uint8_t color_buffer[8] = {0};
-    int8_t status = read(CLEAR_DATA_LOW_BYTE_REG_ADDRESS, &color_buffer, 8);
+    int8_t status = read(CLEAR_DATA_LOW_BYTE_REG_ADDRESS, color_buffer, 8);
     if (status != NO_ERROR) return status;
 
     clear = ((uint16_t) color_buffer[1]) << 8 | (uint16_t) color_buffer[0];
@@ -271,7 +292,7 @@ int8_t Melopero_APDS9960::updateColorData(){
 int8_t Melopero_APDS9960::enableGesturesEngine(bool enable){
     int8_t status = enableProximityEngine();
     if (status != NO_ERROR) return status;
-    return andOrRegister(ENABLE_REG_ADDRESS, (enable << 6) 0xBF, enable << 6);
+    return andOrRegister(ENABLE_REG_ADDRESS, (enable << 6) | 0xBF, enable << 6);
 }
 
 int8_t Melopero_APDS9960::enterImmediatelyGestureEngine(){
@@ -325,10 +346,10 @@ int8_t Melopero_APDS9960::setGestureWaitTime(uint8_t wait_time){
 
 int8_t Melopero_APDS9960::setGestureOffsets(int8_t up_offset, int8_t down_offset, int8_t left_offset, int8_t right_offset){
     uint8_t offsets[4] = {0};
-    offset[0] = up_offset < 0 ? 0x80 | ((uint8_t) -up_offset) : up_offset;
-    offset[1] = down_offset < 0 ? 0x80 | ((uint8_t) -down_offset) : down_offset;
-    offset[2] = left_offset < 0 ? 0x80 | ((uint8_t) -left_offset) : left_offset;
-    offset[3] = right_offset < 0 ? 0x80 | ((uint8_t) -right_offset) : right_offset;
+    offsets[0] = up_offset < 0 ? 0x80 | ((uint8_t) -up_offset) : up_offset;
+    offsets[1] = down_offset < 0 ? 0x80 | ((uint8_t) -down_offset) : down_offset;
+    offsets[2] = left_offset < 0 ? 0x80 | ((uint8_t) -left_offset) : left_offset;
+    offsets[3] = right_offset < 0 ? 0x80 | ((uint8_t) -right_offset) : right_offset;
 
     return write(GESTURE_OFFSET_UP_REG_ADDRESSES, offsets, 4);
 }
@@ -348,7 +369,7 @@ int8_t Melopero_APDS9960::setActivePhotodiodesPairs(bool up_down_active, bool ri
     return andOrRegister(GESTURE_CONFIG_3_REG_ADDRESS, flag | 0xFC, flag);
 }
 
-int8_t Melopero_APDS9960::enableGestureInterrupts(bool enable_interrupts = true){
+int8_t Melopero_APDS9960::enableGestureInterrupts(bool enable_interrupts){
     return andOrRegister(GESTURE_CONFIG_4_REG_ADDRESS, (enable_interrupts << 1) | 0xFD, enable_interrupts << 1);
 }
 
@@ -400,7 +421,7 @@ int8_t Melopero_APDS9960::enableWaitEngine(bool enable){
 }
 
 int8_t Melopero_APDS9960::setWaitTime(float wtime, bool long_wait){
-    if (!(2.78f <= wtime && wtime <= 712f))
+    if (!(2.78f <= wtime && wtime <= 712.0f))
         return INVALID_ARGUMENT;
 
     // long_wait

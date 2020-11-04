@@ -6,7 +6,7 @@
 #include "Wire.h"
 
 //TODO: include is here for int defs. Remove later
-#include <stdint.h>
+//#include <stdint.h>
 
 #define DEFAULT_I2C_ADDRESS 0x39
 
@@ -133,7 +133,7 @@ class Melopero_APDS9960 {
         uint8_t i2cAddress;
         uint8_t deviceStatus;
         uint8_t proximityData;
-        uint8_t alsSaturation;
+        uint16_t alsSaturation;
 
         uint8_t datasetsInFifo;
         bool gestureEngineRunning;
@@ -153,6 +153,8 @@ class Melopero_APDS9960 {
     //    I2C functions
     //=========================================================================
 
+    int8_t init();
+
     int8_t read(uint8_t registerAddress, uint8_t* buffer, uint8_t amount);
         
     int8_t write(uint8_t registerAddress, uint8_t* values, uint8_t len);
@@ -168,7 +170,7 @@ class Melopero_APDS9960 {
     /*! @brief Toggles between IDLE and SLEEP state. In sleep state the device can still receive and process I2C messages.\n
      *  @param[in] wakeUP : Enter the IDLE state if True else enter SLEEP state, by default the value is True. 
      *  @return the status of the execution. */
-    int8_t wakeUp(wakeUp = true);
+    int8_t wakeUp(bool wakeUp = true);
 
     int8_t reset();
 
