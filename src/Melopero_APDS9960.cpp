@@ -259,7 +259,7 @@ int8_t Melopero_APDS9960::setAlsIntegrationTime(float wtime){
     if (!(2.78f <= wtime && wtime <= 712.0f))
         return INVALID_ARGUMENT;
 
-    uint8_t value = 256 - (int)( wtime / 2.78f);
+    uint8_t value = 256 - (int)(wtime / 2.78f);
     return write(ALS_ATIME_REG_ADDRESS, &value, 1);
 }
 
@@ -268,7 +268,7 @@ int8_t Melopero_APDS9960::updateSaturation(){
         int8_t status = read(ALS_ATIME_REG_ADDRESS, &reg_value, 1);
         if (status != NO_ERROR) return status;
 
-        uint16_t cycles = (256 - reg_value) * 1025;
+        int cycles = (256 - reg_value) * 1025;
         alsSaturation = cycles < 65535 ? cycles : 65535;
         return NO_ERROR;
 }
@@ -380,7 +380,7 @@ int8_t Melopero_APDS9960::setGestureFifoThreshold(uint8_t fifo_thr){
     return andOrRegister(GESTURE_CONFIG_1_REG_ADDRESS, (fifo_thr << 6) | 0x3F, fifo_thr << 6);
 }
 
-int8_t Melopero_APDS9960::clearGestureEngineInterrupts(){
+int8_t Melopero_APDS9960::resetGestureEngineInterruptSettings(){
     uint8_t flag = (1 << 2);
     return andOrRegister(GESTURE_CONFIG_4_REG_ADDRESS, flag | 0xFB, flag);
 }

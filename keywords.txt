@@ -76,7 +76,7 @@ setGesturePulseCountAndLength	KEYWORD2
 setActivePhotodiodesPairs	KEYWORD2
 enableGestureInterrupts	KEYWORD2
 setGestureFifoThreshold	KEYWORD2
-clearGestureEngineInterrupts	KEYWORD2
+resetGestureEngineInterruptSettings	KEYWORD2
 checkGestureEngineRunning	KEYWORD2
 updateNumberOfDatasetsInFifo	KEYWORD2
 updateGestureStatus	KEYWORD2

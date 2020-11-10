@@ -133,14 +133,14 @@ class Melopero_APDS9960 {
         uint8_t i2cAddress;
         uint8_t deviceStatus;
         uint8_t proximityData;
-        uint16_t alsSaturation;
 
         uint8_t datasetsInFifo;
         bool gestureEngineRunning;
         bool gestureFifoOverflow;
         bool gestureFifoHasData;
         uint8_t gestureData[4];
-
+        
+        uint16_t alsSaturation;
         uint16_t red;
         uint16_t green;
         uint16_t blue;
@@ -406,7 +406,8 @@ class Melopero_APDS9960 {
     int8_t setGestureFifoThreshold(uint8_t fifo_thr);
 
     /* Clears GFIFO, GINT, GVALID, GFIFO_OV and GFIFO_LVL. */
-    int8_t clearGestureEngineInterrupts();
+    /*! Gesture  Interrupts  flags:  GINT,  GVALID, and GFLVL are cleared by emptying the FIFO */
+    int8_t resetGestureEngineInterruptSettings();
 
     /* updates the gestureEngineRunning variable */
     int8_t checkGestureEngineRunning();
@@ -422,6 +423,8 @@ class Melopero_APDS9960 {
      *  DOWN, LEFT & RIGHT gesture data. The amount of valid data can be retrieved 
      *  with the get_number_of_datasets_in_fifo method. */      
     int8_t updateGestureData();
+
+    
         
     // =========================================================================
     //     Wait Engine Methods
