@@ -123,6 +123,13 @@
 #define GESTURE_WAIT_30_8_MILLIS 6
 #define GESTURE_WAIT_39_2_MILLIS 7
 
+#define NO_GESTURE 0
+#define UP_GESTURE 1
+#define DOWN_GESTURE 2
+#define LEFT_GESTURE 3
+#define RIGHT_GESTURE 4
+
+    //Status codes
 #define NO_ERROR 0
 #define I2C_ERROR -1
 #define INVALID_ARGUMENT -2
@@ -139,6 +146,8 @@ class Melopero_APDS9960 {
         bool gestureFifoOverflow;
         bool gestureFifoHasData;
         uint8_t gestureData[4];
+        uint8_t parsedUpDownGesture;
+        uint8_t parsedLeftRightGesture;
         
         uint16_t alsSaturation;
         uint16_t red;
@@ -424,6 +433,9 @@ class Melopero_APDS9960 {
      *  with the get_number_of_datasets_in_fifo method. */      
     int8_t updateGestureData();
 
+    /*! Reads the gesture fifo and tries to parse a gesture with the available datasets. 
+     *  The parsed gesture is stored in parsedGesture. */
+    int8_t parseGesture(uint8_t tolerance = 13, uint8_t confidence = 4);
     
         
     // =========================================================================

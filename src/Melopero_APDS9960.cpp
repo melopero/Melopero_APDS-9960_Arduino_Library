@@ -412,6 +412,65 @@ int8_t Melopero_APDS9960::updateGestureData(){
     return read(GESTURE_FIFO_UP_REG_ADDRESS, gestureData, 4);       
 }
 
+int8_t Melopero_APDS9960::parseGesture(uint8_t tolerance, uint8_t confidence){
+    int8_t status = NO_ERROR;
+    status = updateNumberOfDatasetsInFifo();
+    if (status != NO_ERROR) return status;
+
+    uint8_t up_count = 0;
+    uint8_t down_count = 0;
+    uint8_t left_count = 0;
+    uint8_t right_count = 0;
+    for (int i = 0; i < datasetsInFifo; i++){
+        status = updateGestureData();
+        if (status != NO_ERROR) return status;
+        
+        int8_t up_down_diff = (int8_t) gestureData[0] - (int8_t) gestureData[1];
+        if (i > datasetsInFifo / 2) up_down_diff *= -1;
+
+        if (abs(up_down_diff) > tolerance){
+            if (up_down_diff < 0){
+                // down is greater
+                down_count++;
+                
+            } else {
+                // up is greater
+                up_count++;
+            }
+        }
+
+        int8_t left_right_diff = (int8_t) gestureData[2] - (int8_t) gestureData[3];
+        if (i > datasetsInFifo / 2) left_right_diff *= -1;
+
+        if (abs(left_right_diff) > tolerance){
+            if (left_right_diff < 0){
+                // right is greater
+                right_count++;
+                
+            } else {
+                // left is greater
+                left_count++;
+            }
+        }
+    }
+
+    if (down_count >= up_count + confidence)
+        parsedUpDownGesture = DOWN_GESTURE;
+    else if (up_count >= down_count + confidence)
+        parsedUpDownGesture = UP_GESTURE;
+    else 
+        parsedUpDownGesture = NO_GESTURE;
+
+    if (right_count >= left_count + confidence)
+        parsedLeftRightGesture = RIGHT_GESTURE;
+    else if (left_count >= right_count + confidence)
+        parsedLeftRightGesture = LEFT_GESTURE;
+    else 
+        parsedLeftRightGesture = NO_GESTURE;
+    
+    return status; // should be no error
+}
+
 // =========================================================================
 //     Wait Engine Methods
 // =========================================================================

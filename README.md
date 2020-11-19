@@ -75,8 +75,8 @@ void checkError(int8_t status_code){
 To toggle between the low consumption SLEEP state and the operating IDLE state:  
 
 ```C++
-device.wake_up(true); // Enter IDLE state
-device.wake_up(false); // Enter SLEEP state
+device.wakeUp(true); // Enter IDLE state
+device.wakeUp(false); // Enter SLEEP state
 ```
 
 Other general methods:  

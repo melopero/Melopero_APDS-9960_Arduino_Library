@@ -2,7 +2,7 @@
 // email: info@melopero.com
 // 
 // In this example it is shown how to configure the device to detect
-// gesture related interrupts.
+// gestures.
 // 
 // First make sure that your connections are setup correctly:
 // I2C pinout:
@@ -71,28 +71,32 @@ void loop() {
   if (interruptOccurred){
     // clear interrupt
     interruptOccurred = false;
-    Serial.println("Interrupt occurred!");
+   
     // The interrupt is cleared by reading all available datasets in the fifo
+    // When an interrupt occurs we know we have 16 datasets in the fifo, by analyzing 
+    // these datasets we can detect a gesture.
 
-    // Retrieve number of datasets in fifo 
-    device.updateNumberOfDatasetsInFifo();
-    Serial.print("There are ");
-    Serial.print(device.datasetsInFifo);
-    Serial.println(" datasets in the fifo!");
+    // device.parseGesture(tolerance, confidence)
+    // tolerance: minimum difference (in distance) needed to acknowledge that a directional diode is being activated in respect to his opposite 
+    //            (a kind of threshold)  
+    // confidence : The minimum amount of detected gesture samples needed for an axis to tell that a gesture has been detected on that axis.
+    device.parseGesture(12, 4);
 
-    // print them out : UP DOWN LEFT RIGHT
-    for (int i = 0; i < device.datasetsInFifo; i++){
-      device.updateGestureData();
+    if (device.parsedUpDownGesture != NO_GESTURE || device.parsedLeftRightGesture != NO_GESTURE)
+        Serial.print("Gesture : ");
 
-      Serial.print(i);
-      Serial.print(" : ");
-      Serial.print(device.gestureData[0]);
-      Serial.print(" ");
-      Serial.print(device.gestureData[1]);
-      Serial.print(" ");
-      Serial.print(device.gestureData[2]);
-      Serial.print(" ");
-      Serial.println(device.gestureData[3]);
-    }
+    if (device.parsedUpDownGesture == UP_GESTURE)
+        Serial.print("UP ");
+    else if (device.parsedUpDownGesture == DOWN_GESTURE)
+        Serial.print("DOWN ");
+
+    if (device.parsedLeftRightGesture == LEFT_GESTURE)
+        Serial.print("LEFT ");
+    else if (device.parsedLeftRightGesture == RIGHT_GESTURE)
+        Serial.print("RIGHT ");
+
+    if (device.parsedUpDownGesture != NO_GESTURE || device.parsedLeftRightGesture != NO_GESTURE)
+        Serial.println();
   }
+
 }
