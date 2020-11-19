@@ -435,7 +435,10 @@ class Melopero_APDS9960 {
 
     /*! Reads the gesture fifo and tries to parse a gesture with the available datasets. 
      *  The parsed gesture is stored in parsedGesture. */
-    int8_t parseGesture(uint8_t tolerance = 13, uint8_t confidence = 4);
+    int8_t parseGestureInFifo(uint8_t tolerance = 12, uint8_t der_tolerance = 6, uint8_t confidence = 6);
+
+    /*! Reads the gesture data for the given amount of time and tries to interpret a gesture. */
+    int8_t parseGesture(uint parse_millis, uint8_t tolerance = 12, uint8_t der_tolerance = 6, uint8_t confidence = 6);
     
         
     // =========================================================================

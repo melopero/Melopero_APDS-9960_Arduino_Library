@@ -412,44 +412,186 @@ int8_t Melopero_APDS9960::updateGestureData(){
     return read(GESTURE_FIFO_UP_REG_ADDRESS, gestureData, 4);       
 }
 
-int8_t Melopero_APDS9960::parseGesture(uint8_t tolerance, uint8_t confidence){
+int8_t Melopero_APDS9960::parseGestureInFifo(uint8_t tolerance, uint8_t der_tolerance, uint8_t confidence){
+    // Detecting method:
+    // 1) identify instants where difference between values on same axis is greater than tolerance
+    // 2) identify instants where both curves are raising or falling 
+    // 2.1) the curves must be both raising or both falling at the same instants   
+    // 3) In those instants which value is greater ? 
+    // 3.1) if up[i] > down[i] 
+    //          if dup > 0 and ddown > 0 (curves are raising):
+    //              up_count++; 
+    //          else if dup < 0 and ddown < 0 (curves are falling):
+    //              down_count++ 
+    // 4) After having processed all datasets in the fifo see if there is enough "confidence" to tell a gesture has been detected
+    //      if up_count > down_count + confidence: 
+    //          gesture = UP_GESTURE
+    //      else if down_count > up_count + confidence:
+    //          gesture = DOWN_GESTURE
+    //      else 
+    //          gesture = NO_GESTURE
+
     int8_t status = NO_ERROR;
     status = updateNumberOfDatasetsInFifo();
     if (status != NO_ERROR) return status;
+
+    if (datasetsInFifo == 0){
+        parsedUpDownGesture = NO_GESTURE;
+        parsedLeftRightGesture = NO_GESTURE;
+
+        return status;
+    }
 
     uint8_t up_count = 0;
     uint8_t down_count = 0;
     uint8_t left_count = 0;
     uint8_t right_count = 0;
-    for (int i = 0; i < datasetsInFifo; i++){
+
+    uint8_t prev_dataset[4];
+    status = updateGestureData();
+    if (status != NO_ERROR) return status;
+
+    for (int i = 0; i < 4; i++)
+        prev_dataset[i] = gestureData[i];
+
+    for (int i = 1; i < datasetsInFifo; i++){
         status = updateGestureData();
         if (status != NO_ERROR) return status;
-        
-        int8_t up_down_diff = (int8_t) gestureData[0] - (int8_t) gestureData[1];
-        if (i > datasetsInFifo / 2) up_down_diff *= -1;
 
-        if (abs(up_down_diff) > tolerance){
-            if (up_down_diff < 0){
-                // down is greater
-                down_count++;
-                
-            } else {
-                // up is greater
-                up_count++;
+        int8_t up_der = gestureData[0] - prev_dataset[0]; 
+        int8_t down_der = gestureData[1] - prev_dataset[1]; 
+        int8_t left_der = gestureData[2] - prev_dataset[2]; 
+        int8_t right_der = gestureData[3] - prev_dataset[3];
+
+        int8_t up_down_diff = (int8_t) gestureData[0] - (int8_t) gestureData[1];
+
+        if ((abs(up_down_diff) > tolerance) && (abs(up_der) > der_tolerance || abs(down_der) > der_tolerance)){
+            if (up_der >= 0 && down_der >= 0){
+                if (gestureData[0] > gestureData[1])
+                    up_count++;
+                else 
+                    down_count++;
+            }
+            else if (up_der <= 0 && down_der <= 0) {
+                if (gestureData[0] < gestureData[1])
+                    up_count++;
+                else 
+                    down_count++;
             }
         }
 
         int8_t left_right_diff = (int8_t) gestureData[2] - (int8_t) gestureData[3];
-        if (i > datasetsInFifo / 2) left_right_diff *= -1;
 
-        if (abs(left_right_diff) > tolerance){
-            if (left_right_diff < 0){
-                // right is greater
-                right_count++;
-                
-            } else {
-                // left is greater
-                left_count++;
+        if ((abs(left_right_diff) > tolerance) && (abs(left_der) > der_tolerance || abs(right_der) > der_tolerance)){
+            if (left_der >= 0 && right_der >= 0){
+                if (gestureData[2] > gestureData[3])
+                    left_count++;
+                else 
+                    right_count++;
+            }
+            else if (left_der <= 0 && right_der <= 0) {
+                if (gestureData[2] < gestureData[3])
+                    left_count++;
+                else 
+                    right_count++;
+            }
+        }
+
+        for (int i = 0; i < 4; i++)
+            prev_dataset[i] = gestureData[i];
+
+    }
+
+    if (down_count >= up_count + confidence)
+        parsedUpDownGesture = DOWN_GESTURE;
+    else if (up_count >= down_count + confidence)
+        parsedUpDownGesture = UP_GESTURE;
+    else 
+        parsedUpDownGesture = NO_GESTURE;
+
+    if (right_count >= left_count + confidence)
+        parsedLeftRightGesture = RIGHT_GESTURE;
+    else if (left_count >= right_count + confidence)
+        parsedLeftRightGesture = LEFT_GESTURE;
+    else 
+        parsedLeftRightGesture = NO_GESTURE;
+    
+    return status; // should be no error
+}
+
+int8_t Melopero_APDS9960::parseGesture(uint parse_millis, uint8_t tolerance, uint8_t der_tolerance, uint8_t confidence){
+    // Detecting method:
+    // same as parseGestureInFifo(...) see comments there.
+    int start_millis = millis();
+    int8_t status = NO_ERROR;
+
+    uint8_t up_count = 0;
+    uint8_t down_count = 0;
+    uint8_t left_count = 0;
+    uint8_t right_count = 0;
+
+    uint8_t prev_dataset[4];
+    bool first_iteration = true;
+
+    while (start_millis + parse_millis > millis()){
+        status = updateNumberOfDatasetsInFifo();
+        if (status != NO_ERROR) return status;
+        if (datasetsInFifo > 0){
+            if (first_iteration){
+                first_iteration = false;
+                status = updateGestureData();
+                if (status != NO_ERROR) return status;
+
+                for (int i = 0; i < 4; i++)
+                    prev_dataset[i] = gestureData[i];
+            }
+            else {
+                for (int i = 0; i < datasetsInFifo; i++){
+                    status = updateGestureData();
+                    if (status != NO_ERROR) return status;
+
+                    int8_t up_der = gestureData[0] - prev_dataset[0]; 
+                    int8_t down_der = gestureData[1] - prev_dataset[1]; 
+                    int8_t left_der = gestureData[2] - prev_dataset[2]; 
+                    int8_t right_der = gestureData[3] - prev_dataset[3];
+
+                    int8_t up_down_diff = (int8_t) gestureData[0] - (int8_t) gestureData[1];
+
+                    if ((abs(up_down_diff) > tolerance) && (abs(up_der) > der_tolerance || abs(down_der) > der_tolerance)){
+                        if (up_der >= 0 && down_der >= 0){
+                            if (gestureData[0] > gestureData[1])
+                                up_count++;
+                            else 
+                                down_count++;
+                        }
+                        else if (up_der <= 0 && down_der <= 0) {
+                            if (gestureData[0] < gestureData[1])
+                                up_count++;
+                            else 
+                                down_count++;
+                        }
+                    }
+
+                    int8_t left_right_diff = (int8_t) gestureData[2] - (int8_t) gestureData[3];
+
+                    if ((abs(left_right_diff) > tolerance) && (abs(left_der) > der_tolerance || abs(right_der) > der_tolerance)){
+                        if (left_der >= 0 && right_der >= 0){
+                            if (gestureData[2] > gestureData[3])
+                                left_count++;
+                            else 
+                                right_count++;
+                        }
+                        else if (left_der <= 0 && right_der <= 0) {
+                            if (gestureData[2] < gestureData[3])
+                                left_count++;
+                            else 
+                                right_count++;
+                        }
+                    }
+
+                    for (int i = 0; i < 4; i++)
+                        prev_dataset[i] = gestureData[i];
+                }
             }
         }
     }

@@ -181,6 +181,30 @@ for (int i = 0; i < device.datasetsInFifo; i++){
 }
 ```
 
+To detect/parse gesture there are two useful methods:
+
+```C++
+// Collect gesture data and try to detect a gesture for the given amount of time
+device.parseGesture(uint parse_millis, uint8_t tolerance = 12, uint8_t der_tolerance = 6, uint8_t confidence = 6);
+// Try to detect a gesture from the datasets present in the fifo
+device.parseGestureInFifo(uint8_t tolerance = 12, uint8_t der_tolerance = 6, uint8_t confidence = 6);
+
+// The detected gestures are stored in:
+device.parsedUpDownGesture // vertical axis gesture, can be one of: NO_GESTURE, UP_GESTURE, DOWN_GESTURE
+device.parsedLeftRightGesture // horizontal axis gesture can be one of: NO_GESTURE, LEFT_GESTURE, RIGHT_GESTURE
+
+// Advanced settings:
+// The tolerance parameter determines how much the two values (on the same axis) have to differ to interpret
+// the current dataset as valid for gesture detection (if the values are nearly the same then its not possible to decide the direction 
+// in which the object is moving).
+//
+// The der_tolerance does the same for the derivative of the two curves (the values on one axis through time):
+// this prevents the device from detecting a gesture if the objects surface is not even...
+//
+// The confidence tells us the minimum amount of "detected gesture samples" needed for an axis to tell that a gesture has been detected othat axis:
+// How its used in the source code: if (detected_up_gesture_samples > detected_down_gesture_samples + confidence) gesture_up_down = GESTURE_UP
+```
+
 Other general methods:
 
 ```C++

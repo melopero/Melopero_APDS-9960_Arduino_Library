@@ -36,8 +36,20 @@ void setup() {
   Serial.begin(9600); // Initialize serial comunication
   while (!Serial); // wait for serial to be ready
 
-  device.init(); // Initialize the comunication library
-  device.reset(); // Reset all interrupt settings and power off the device
+  int8_t status = NO_ERROR;
+  
+  status = device.init(); // Initialize the comunication library
+  if (status != NO_ERROR){
+    Serial.println("Error during initialization");
+    while(true);
+  }
+  status = device.reset(); // Reset all interrupt settings and power off the device
+  if (status != NO_ERROR){
+    Serial.println("Error during reset.");
+    while(true);
+  }
+
+  Serial.println("Device initialized correctly!");
 
   // Gesture engine settings
   device.enableGesturesEngine(); // enable the gesture engine

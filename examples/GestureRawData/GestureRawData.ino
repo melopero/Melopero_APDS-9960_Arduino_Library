@@ -41,16 +41,11 @@ void loop() {
 
   // Retrieve number of datasets in fifo 
   device.updateNumberOfDatasetsInFifo();
-  Serial.print("There are ");
-  Serial.print(device.datasetsInFifo);
-  Serial.println(" datasets in the fifo!");
 
   // print them out : UP DOWN LEFT RIGHT
   for (int i = 0; i < device.datasetsInFifo; i++){
     device.updateGestureData();
 
-    Serial.print(i);
-    Serial.print(" : ");
     Serial.print(device.gestureData[0]);
     Serial.print(" ");
     Serial.print(device.gestureData[1]);
@@ -60,5 +55,4 @@ void loop() {
     Serial.println(device.gestureData[3]);
   }
 
-  delay(100);
 }
