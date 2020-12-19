@@ -519,16 +519,16 @@ int8_t Melopero_APDS9960::parseGestureInFifo(uint8_t tolerance, uint8_t der_tole
     return status; // should be no error
 }
 
-int8_t Melopero_APDS9960::parseGesture(uint parse_millis, uint8_t tolerance, uint8_t der_tolerance, uint8_t confidence){
+int8_t Melopero_APDS9960::parseGesture(uint16_t parse_millis, uint8_t tolerance, uint8_t der_tolerance, uint16_t confidence){
     // Detecting method:
     // same as parseGestureInFifo(...) see comments there.
     int start_millis = millis();
     int8_t status = NO_ERROR;
 
-    uint8_t up_count = 0;
-    uint8_t down_count = 0;
-    uint8_t left_count = 0;
-    uint8_t right_count = 0;
+    uint32_t up_count = 0;
+    uint32_t down_count = 0;
+    uint32_t left_count = 0;
+    uint32_t right_count = 0;
 
     uint8_t prev_dataset[4];
     bool first_iteration = true;
