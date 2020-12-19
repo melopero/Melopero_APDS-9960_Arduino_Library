@@ -5,8 +5,7 @@
 #include "Arduino.h"
 #include "Wire.h"
 
-//TODO: include is here for int defs. Remove later
-//#include <stdint.h>
+#include <stdint.h>
 
 #define DEFAULT_I2C_ADDRESS 0x39
 
