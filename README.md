@@ -27,13 +27,19 @@ Including the library and device object creation:
 
 ```C++
 #include "Melopero_APDS9960.h"
+#include "Wire.h"
 
 Melopero_APDS9960 device;
 
 void setup() {
     ...
 
-    device.init(); // Initialize the comunication library
+    // Initialize the comunication library
+    Wire.begin();
+    device.initI2C(); // device.initI2C(i2c_address, i2c_bus);
+    // the default are i2c_address=0x39 and i2c_bus=Wire
+    // use device.initI2C(0x39, Wire1); to use Wire1 instead
+
     device.reset(); // Reset all interrupt settings and power off the device
     ...
 ```

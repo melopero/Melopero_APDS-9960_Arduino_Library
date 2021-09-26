@@ -22,7 +22,9 @@ void setup() {
   Serial.begin(9600); // Initialize serial comunication
   while (!Serial); // wait for serial to be ready
 
-  device.init(); // Initialize the comunication library
+  Wire.begin();
+
+  device.initI2C(0x39, Wire); // Initialize the comunication library
   device.reset(); // Reset all interrupt settings and power off the device
 
   device.enableGesturesEngine(); // enable the gesture engine

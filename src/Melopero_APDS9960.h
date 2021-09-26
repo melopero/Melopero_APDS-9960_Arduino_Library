@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#define DEFAULT_I2C_ADDRESS 0x39
+#define APDS9960_DEFAULT_I2C_ADDRESS 0x39
 
     //Register addresses
 #define ENABLE_REG_ADDRESS 0x80
@@ -136,6 +136,7 @@
 class Melopero_APDS9960 {
 
     public:
+        TwoWire *i2c;
         uint8_t i2cAddress;
         uint8_t deviceStatus;
         uint8_t proximityData;
@@ -155,13 +156,13 @@ class Melopero_APDS9960 {
         uint16_t clear;
 
     public:
-        Melopero_APDS9960(uint8_t i2cAddr = DEFAULT_I2C_ADDRESS);
+        Melopero_APDS9960();
 
     //=========================================================================
     //    I2C functions
     //=========================================================================
 
-    int8_t init();
+    int8_t initI2C(uint8_t i2cAddr=APDS9960_DEFAULT_I2C_ADDRESS, TwoWire &bus = Wire);
 
     int8_t read(uint8_t registerAddress, uint8_t* buffer, uint8_t amount);
         

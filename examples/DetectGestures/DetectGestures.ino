@@ -25,7 +25,8 @@ void setup() {
 
   int8_t status = NO_ERROR;
   
-  status = device.init(); // Initialize the comunication library
+  Wire.begin();
+  status = device.initI2C(0x39, Wire); // Initialize the comunication library
   if (status != NO_ERROR){
     Serial.println("Error during initialization");
     while(true);

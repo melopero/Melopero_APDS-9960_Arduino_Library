@@ -2,32 +2,33 @@
 
 #include "Melopero_APDS9960.h"
 
-Melopero_APDS9960::Melopero_APDS9960(uint8_t i2cAddr){
-    i2cAddress = i2cAddr;
+Melopero_APDS9960::Melopero_APDS9960(){
+    
 }
 
 //=========================================================================
 //    I2C functions
 //=========================================================================
 
-int8_t Melopero_APDS9960::init(){
-    Wire.begin();
+int8_t Melopero_APDS9960::initI2C(uint8_t i2cAddr, TwoWire &bus){
+    i2cAddress = i2cAddr;
+    i2c = &bus;
     return NO_ERROR;
 }
 
 int8_t Melopero_APDS9960::read(uint8_t registerAddress, uint8_t* buffer, uint8_t amount){
-    Wire.beginTransmission(i2cAddress);
-    Wire.write(registerAddress);
-    uint8_t i2cStatus = Wire.endTransmission();
+    i2c->beginTransmission(i2cAddress);
+    i2c->write(registerAddress);
+    uint8_t i2cStatus = i2c->endTransmission();
     if (i2cStatus != 0) return I2C_ERROR;
 
     uint32_t dataIndex = 0;
     do {
         uint8_t request = amount > 32 ? 32 : amount;
-        Wire.requestFrom(i2cAddress, request);
+        i2c->requestFrom(i2cAddress, request);
         for (uint8_t i = 0; i < request; i++){
-            if (Wire.available()){
-                buffer[dataIndex] = Wire.read();
+            if (i2c->available()){
+                buffer[dataIndex] = i2c->read();
                 dataIndex++;
                 amount--;
             }
@@ -41,10 +42,10 @@ int8_t Melopero_APDS9960::read(uint8_t registerAddress, uint8_t* buffer, uint8_t
 }
     
 int8_t Melopero_APDS9960::write(uint8_t registerAddress, uint8_t* values, uint8_t len){
-    Wire.beginTransmission(i2cAddress);
-    Wire.write(registerAddress);
-    Wire.write(values, len);
-    uint8_t i2cStatus = Wire.endTransmission();
+    i2c->beginTransmission(i2cAddress);
+    i2c->write(registerAddress);
+    i2c->write(values, len);
+    uint8_t i2cStatus = i2c->endTransmission();
     if (i2cStatus != 0)
         return I2C_ERROR;
     else 
@@ -61,9 +62,9 @@ int8_t Melopero_APDS9960::andOrRegister(uint8_t registerAddress, uint8_t andValu
 }
 
 int8_t Melopero_APDS9960::addressAccess(uint8_t registerAddress){
-    Wire.beginTransmission(i2cAddress);
-    Wire.write(registerAddress);
-    uint8_t i2cStatus = Wire.endTransmission();
+    i2c->beginTransmission(i2cAddress);
+    i2c->write(registerAddress);
+    uint8_t i2cStatus = i2c->endTransmission();
     if (i2cStatus != 0)
         return I2C_ERROR;
     else 
