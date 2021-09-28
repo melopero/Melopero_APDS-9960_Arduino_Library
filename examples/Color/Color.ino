@@ -22,8 +22,10 @@ void setup() {
   Serial.begin(9600); // Initialize serial comunication
   while (!Serial); // wait for serial to be ready
 
-  Wire.begin();
-  device.initI2C(0x39, Wire); // Initialize the comunication library
+  // Initialize the comunication library
+  Wire.begin(); // use Wire1.begin() to use I2C-1
+  device.initI2C(0x39, Wire); // use device.initI2C(0x39, Wire1) to use I2C-1
+
   device.reset(); // Reset all interrupt settings and power off the device
 
   device.enableAlsEngine(); // enable the color/ALS engine
@@ -58,6 +60,7 @@ void loop() {
 
   Serial.println("Color data:");
   printColor(r,g,b,c); // print normalized values
+  Serial.println("\n\n");
 }
 
 void printColor(float r, float g, float b, float c){
@@ -69,6 +72,14 @@ void printColor(float r, float g, float b, float c){
   Serial.print(b);
   Serial.print(" C: ");
   Serial.println(c);
+
+  uint32_t hex_code = ((uint32_t)(r * 255)) << 24;
+  hex_code |= ((uint32_t)(g * 255)) << 16;
+  hex_code |= ((uint32_t)(b * 255)) << 8;
+  hex_code |= ((uint32_t)(c * 255));
+
+  Serial.println("Color code: ");
+  Serial.println(hex_code, HEX); 
 }
 
 void printColor(uint16_t r, uint16_t g, uint16_t b, uint16_t c){
