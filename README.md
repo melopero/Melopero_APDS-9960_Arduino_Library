@@ -64,7 +64,7 @@ Each method/function returns a status code (int8_t). You can check the status co
     checkError(status);
     ...
 
-void checkError(int8_t status_code){
+void checkError(int8_t error_code){
     if (error_code == NO_ERROR)
         Serial.println("No error :)");
     else if (error_code == I2C_ERROR)
